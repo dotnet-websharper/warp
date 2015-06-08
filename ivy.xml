@@ -1,0 +1,7 @@
+<ivy-module version="2.0">
+  <info organisation="IntelliFactory" module="websharper.warp" />
+  <dependencies>
+    <dependency name="websharper" rev="latest.integration"  />
+    <dependency name="websharper.owin" rev="latest.integration"  />
+  </dependencies>
+</ivy-module>
