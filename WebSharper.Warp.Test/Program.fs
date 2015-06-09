@@ -2,7 +2,7 @@
 
 open WebSharper
 
-type Action =
+type EndPoints =
     | [<EndPoint "/">] Index
 
 [<JavaScript>]
@@ -21,11 +21,11 @@ module Server =
     open WebSharper.Html.Server
 
     let app =
-        Warp.CreateApplication(fun ctx action ->
-            match action with
-            | Action.Index ->
+        Warp.CreateApplication(fun ctx endpoint ->
+            match endpoint with
+            | EndPoints.Index ->
                 Warp.Page(
-                    Title = "foo",
+                    Title = "Welcome to my site!",
                     Body = [
                         Div [Text (System.DateTime.UtcNow.ToString())]
                         Div [ClientSide <@ Client.Content () @>]
@@ -35,5 +35,4 @@ module Server =
 
     [<EntryPoint>]
     let main argv = 
-        Warp.Run app
-        0 // return an integer exit code
+        Warp.RunAndWaitForInput app

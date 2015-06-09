@@ -130,35 +130,40 @@ module internal Compilation =
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.js", asm.ReadableJavaScript)
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.min.js", asm.CompressedJavaScript)
 
-type Warp<'T when 'T : equality> = Sitelet<'T>
+type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 
-/// Warp application.
+/// Utilities to work with Warp applications.
 [<Extension>]
-type SiteletExtensions =
+type Warp internal (url: string, stop: unit -> unit) =
+
+    /// Get the URL on which the Warp application is listening.
+    member this.Url = url
+
+    /// Stop the running Warp application.
+    member this.Stop() = stop()
+
+    interface System.IDisposable with
+        member this.Dispose() = stop()
 
     /// Runs the Warp application.
     [<Extension>]
-    static member Run(sitelet: Warp<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
+    static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
         let scripted = defaultArg scripted false
         let asm =
             match assembly with
             | Some a -> a
-            | None ->
-                if scripted then
-                    Assembly.Load(AssemblyName("FSI-ASSEMBLY"))
-                else
-                    typeof<'T>.Assembly
+            | None -> Assembly.GetCallingAssembly()
         match Compilation.compile asm with
-        | None -> eprintfn "Failed to compile with WebSharper"
+        | None -> failwith "Failed to compile with WebSharper"
         | Some (asm, refs) ->
             let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
-            let port = defaultArg port 9000
-            let debug = defaultArg debug true
+            let url = defaultArg url "http://localhost:9000/"
+            let url = if not (url.EndsWith "/") then url + "/" else url
+            let debug = defaultArg debug false
             Compilation.outputFiles rootDir refs
             Compilation.outputFile rootDir asm
-            let url = sprintf "http://localhost:%i/" port
             try
-                use server = WebApp.Start(url, fun appB ->
+                let server = WebApp.Start(url, fun appB ->
                     appB.UseStaticFiles(
                             StaticFileOptions(
                                 FileSystem = PhysicalFileSystem(rootDir)))
@@ -168,15 +173,29 @@ type SiteletExtensions =
                                 .WithDebug(debug),
                             sitelet)
                     |> ignore)
-                stdout.WriteLine("Serving {0}, press Enter to stop.", url)
-                stdin.ReadLine() |> ignore
+                new Warp(url, server.Dispose)
             with e ->
-                eprintfn "Error starting website:\n%s" e.Message
+                failwithf "Error starting website:\n%s" (e.ToString())
 
-type Warp =
+    /// Runs the Warp application and waits for standard input.
+    [<Extension>]
+    static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
+        try
+            let assembly =
+                match assembly with
+                | Some a -> a
+                | None -> Assembly.GetCallingAssembly()
+            let warp = Warp.Run(app, ?debug = debug, ?url = url, ?rootDir = rootDir, ?scripted = scripted, assembly = assembly)
+            stdout.WriteLine("Serving {0}, press Enter to stop.", warp.Url)
+            stdin.ReadLine() |> ignore
+            warp.Stop()
+            0
+        with e ->
+            eprintfn "%A" e
+            1
 
     /// Creates a Warp application based on an Action->Content mapping.
-    static member CreateApplication(f: Context<'T> -> 'T -> Content<'T>) : Warp<'T> =
+    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
 
     /// Creates an HTML page response.
@@ -189,9 +208,6 @@ type Warp =
                 Title = Title
             }
         )
-
-    static member Run (app: Sitelet<'T>) =
-        app.Run()
 
 type EndPointAttribute = Sitelets.EndPointAttribute
 type MethodAttribute = Sitelets.MethodAttribute
