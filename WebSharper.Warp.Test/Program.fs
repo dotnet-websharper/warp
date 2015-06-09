@@ -2,7 +2,8 @@
 
 open WebSharper
 
-type Action = | Index
+type Action =
+    | [<CompiledName "">] Index
 
 module Client =
 
@@ -19,12 +20,15 @@ module Server =
     open WebSharper.Warp
 
     let Sitelet =
-        Sitelet.Content "/" Index (Content.PageContent <| fun _ ->
-            {Page.Default with
-                Body =
-                    [
-                        Div [ClientSide <@ Client.Content () @>]
-                    ]})
+        Application.Create (function
+            | Action.Index ->
+                Content.PageContent <| fun _ ->
+                    { Page.Default with
+                        Body =
+                            [
+                                Div [ClientSide <@ Client.Content () @>]
+                            ]}
+        )
 
     [<EntryPoint>]
     let main argv = 

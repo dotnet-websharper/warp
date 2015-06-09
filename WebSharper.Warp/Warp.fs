@@ -129,9 +129,9 @@ module internal Compilation =
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.min.js", asm.CompressedJavaScript)
 
 /// Utilities to work with Warp applications
-type Application =
+type Application<'T when 'T : equality> =
     /// Creates a Warp application based on an Action->Content mapping
-    static member Create = Sitelet.Infer
+    static member Create(f: 'T -> Content<'T>) = Sitelet.Infer f
 
     /// Runs a Warp application
     static member Run(sitelet: Sitelet<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
