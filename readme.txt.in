@@ -1,0 +1,17 @@
+To use Warp from an F# script, add the following lines at the top of your file:
+
+    #I "packages/${Owin}/lib/net40"
+    #I "packages/${Microsoft.Owin}/lib/net45"
+    #I "packages/${Microsoft.Owin.Host.HttpListener}/lib/net45"
+    #I "packages/${Microsoft.Owin.Hosting}/lib/net45"
+    #I "packages/${Microsoft.Owin.FileSystems}/lib/net45"
+    #I "packages/${Microsoft.Owin.StaticFiles}/lib/net45"
+    #I "packages/${WebSharper}/lib/net40"
+    #I "packages/${WebSharper.Compiler}/lib/net40"
+    #I "packages/${WebSharper.Owin}/lib/net45"
+    #load "packages/WebSharper.Warp.${WarpVersion}/tools/reference.fsx"
+
+If you install NuGet packages without version number in the path
+(for example if you use Paket), then you can simply add this instead:
+
+    #load "packages/WebSharper.Warp/tools/reference-nover.fsx"

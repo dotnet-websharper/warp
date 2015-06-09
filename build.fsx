@@ -44,11 +44,35 @@ let test =
                 r.NuGet("WebSharper.Owin").Reference()
             ])
 
+let package = bt.NuGet.CreatePackage()
+
+do
+    let getVersion (pkg: string) =
+        match bt.NuGetResolver.FindLatestVersion(pkg) with
+        | None -> failwith ""
+        | Some v -> v.ToString()
+    let replaceVersion pkg (s: string) =
+        s.Replace("${" + pkg + "}", pkg + "." + getVersion pkg)
+    let readme =
+        System.IO.File.ReadAllText("readme.txt.in")
+            .Replace("${WarpVersion}", package.GetComputedVersion())
+        |> replaceVersion "WebSharper"
+        |> replaceVersion "WebSharper.Compiler"
+        |> replaceVersion "Owin"
+        |> replaceVersion "Microsoft.Owin"
+        |> replaceVersion "Microsoft.Owin.Host.HttpListener"
+        |> replaceVersion "Microsoft.Owin.Hosting"
+        |> replaceVersion "Microsoft.Owin.SelfHost"
+        |> replaceVersion "Microsoft.Owin.FileSystems"
+        |> replaceVersion "Microsoft.Owin.StaticFiles"
+        |> replaceVersion "WebSharper.Owin"
+    System.IO.File.WriteAllText("readme.txt", readme)
+
 bt.Solution [
     main
     test
 
-    bt.NuGet.CreatePackage()
+    package
         .Configure(fun c ->
             { c with
                 Title = Some "WebSharper.Warp"
@@ -58,5 +82,8 @@ bt.Solution [
                 Authors = ["IntelliFactory"]
                 RequiresLicenseAcceptance = true })
         .Add(main)
+        .AddFile("readme.txt", "readme.txt")
+        .AddFile("WebSharper.Warp/reference.fsx", "tools/reference.fsx")
+        .AddFile("WebSharper.Warp/reference-nover.fsx", "tools/reference-nover.fsx")
 ]
 |> bt.Dispatch
