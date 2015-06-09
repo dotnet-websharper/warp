@@ -11,7 +11,6 @@ open Microsoft.Owin.FileSystems
 open WebSharper
 open WebSharper.Owin
 
-
 module internal Compilation =
 
     module PC = WebSharper.PathConventions
@@ -21,7 +20,7 @@ module internal Compilation =
     module FE = WebSharper.Compiler.FrontEnd
 
     let compile asm =
-        let localDir = __SOURCE_DIRECTORY__
+        let localDir = Directory.GetCurrentDirectory()
         let websharperDir = Path.GetDirectoryName typeof<Sitelet<_>>.Assembly.Location
         let fsharpDir = Path.GetDirectoryName typeof<option<_>>.Assembly.Location
         let loadPaths =
@@ -129,17 +128,26 @@ module internal Compilation =
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.js", asm.ReadableJavaScript)
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.min.js", asm.CompressedJavaScript)
 
+/// Utilities to work with Warp applications
 type Application =
+    /// Creates a Warp application based on an Action->Content mapping
+    static member Create = Sitelet.Infer
 
-    static member Run(sitelet, ?debug, ?port, ?rootDir, ?assembly) =
+    /// Runs a Warp application
+    static member Run(sitelet: Sitelet<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
+        let scripted = defaultArg scripted false
         let asm =
             match assembly with
             | Some a -> a
-            | None -> Assembly.Load(AssemblyName("FSI-ASSEMBLY"))
+            | None ->
+                if scripted then
+                    Assembly.Load(AssemblyName("FSI-ASSEMBLY"))
+                else
+                    typeof<'T>.Assembly
         match Compilation.compile asm with
         | None -> eprintfn "Failed to compile with WebSharper"
         | Some (asm, refs) ->
-            let rootDir = defaultArg rootDir __SOURCE_DIRECTORY__
+            let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
             let port = defaultArg port 9000
             let debug = defaultArg debug true
             Compilation.outputFiles rootDir refs
@@ -160,4 +168,3 @@ type Application =
                 stdin.ReadLine() |> ignore
             with e ->
                 eprintfn "Error starting website:\n%s" e.Message
-

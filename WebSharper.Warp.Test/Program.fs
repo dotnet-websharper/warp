@@ -28,5 +28,5 @@ module Server =
 
     [<EntryPoint>]
     let main argv = 
-        Application.Run(Sitelet, assembly = typeof<Action>.Assembly)
+        Application.Run(Sitelet)
         0 // return an integer exit code

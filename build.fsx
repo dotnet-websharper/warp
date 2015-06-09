@@ -79,6 +79,7 @@ bt.Solution [
                 LicenseUrl = Some "http://websharper.com/licensing"
                 ProjectUrl = Some "https://github.com/intellifactory/websharper.warp"
                 Description = "WebSharper Warp"
+                Authors = ["IntelliFactory"]
                 RequiresLicenseAcceptance = true })
         .Add(main)
 ]
