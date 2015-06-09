@@ -19,20 +19,8 @@ let main =
                 r.NuGet("Microsoft.Owin.SelfHost").Reference()
                 r.NuGet("Microsoft.Owin.StaticFiles").Reference()
                 r.Assembly("System.Web")
-                r.NuGet("WebSharper").At(
-                    [
-                        "lib/net40/WebSharper.Core.dll"
-                        "lib/net40/WebSharper.Core.JavaScript.dll"
-                        "lib/net40/WebSharper.JavaScript.dll"
-                        "lib/net40/WebSharper.Main.dll"
-                        "lib/net40/WebSharper.Html.Server.dll"
-                        "lib/net40/WebSharper.Html.Client.dll"
-                        "lib/net40/WebSharper.Sitelets.dll"
-                        "lib/net40/WebSharper.Web.dll"
-                        "tools/net40/IntelliFactory.Core.dll"
-                        "tools/net40/Mono.Cecil.dll"
-                        "tools/net40/WebSharper.Compiler.dll"
-                    ]).Reference()
+                r.NuGet("WebSharper").Reference()
+                r.NuGet("WebSharper.Compiler").Reference()
                 r.NuGet("WebSharper.Owin").Reference()
             ])
 
@@ -51,20 +39,8 @@ let test =
                 r.NuGet("Microsoft.Owin.SelfHost").Reference()
                 r.NuGet("Microsoft.Owin.StaticFiles").Reference()
                 r.Assembly("System.Web")
-                r.NuGet("WebSharper").At(
-                    [
-                        "lib/net40/WebSharper.Core.dll"
-                        "lib/net40/WebSharper.Core.JavaScript.dll"
-                        "lib/net40/WebSharper.JavaScript.dll"
-                        "lib/net40/WebSharper.Main.dll"
-                        "lib/net40/WebSharper.Html.Server.dll"
-                        "lib/net40/WebSharper.Html.Client.dll"
-                        "lib/net40/WebSharper.Sitelets.dll"
-                        "lib/net40/WebSharper.Web.dll"
-                        "tools/net40/IntelliFactory.Core.dll"
-                        "tools/net40/Mono.Cecil.dll"
-                        "tools/net40/WebSharper.Compiler.dll"
-                    ]).Reference()
+                r.NuGet("WebSharper").Reference()
+                r.NuGet("WebSharper.Compiler").Reference()
                 r.NuGet("WebSharper.Owin").Reference()
             ])
 
