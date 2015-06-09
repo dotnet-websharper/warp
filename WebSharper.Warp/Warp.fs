@@ -10,6 +10,7 @@ open Microsoft.Owin.StaticFiles
 open Microsoft.Owin.FileSystems
 open WebSharper
 open WebSharper.Owin
+open WebSharper.Html.Server
 
 module internal Compilation =
 
@@ -132,6 +133,22 @@ module internal Compilation =
 type Application<'T when 'T : equality> =
     /// Creates a Warp application based on an Action->Content mapping
     static member Create(f: 'T -> Content<'T>) = Sitelet.Infer f
+
+    /// Creates an HTML page response with the specified body
+    static member PageWithBody (f: Context<_> -> #seq<Element>) =
+        PageContent (fun ctx ->
+            { Page.Default with
+                Body = f ctx }
+        )
+
+    /// Creates an HTML page response with the specified head and body
+    static member PageWithHeadAndBody (f: Context<_> -> #seq<Element> * #seq<Element>) =
+        PageContent (fun ctx ->
+            let head, body = f ctx
+            { Page.Default with
+                Head = head
+                Body = body }
+        )
 
     /// Runs a Warp application
     static member Run(sitelet: Sitelet<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
