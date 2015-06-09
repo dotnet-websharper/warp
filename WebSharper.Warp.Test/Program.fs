@@ -3,34 +3,37 @@
 open WebSharper
 
 type Action =
-    | [<CompiledName "">] Index
+    | [<EndPoint "/">] Index
 
+[<JavaScript>]
 module Client =
 
     open WebSharper.Html.Client
+    open WebSharper.JavaScript
 
-    [<JavaScript>]
     let Content () =
         Button [Text "Click me!"]
+        |>! OnClick (fun _ _ ->
+            JS.Alert "Clicked!")
 
 module Server =
 
-    open WebSharper.Sitelets
     open WebSharper.Html.Server
-    open WebSharper.Warp
 
-    let Sitelet =
-        Application.Create (function
+    let app =
+        Warp.CreateApplication(fun ctx action ->
+            match action with
             | Action.Index ->
-                Content.PageContent <| fun _ ->
-                    { Page.Default with
-                        Body =
-                            [
-                                Div [ClientSide <@ Client.Content () @>]
-                            ]}
+                Warp.Page(
+                    Title = "foo",
+                    Body = [
+                        Div [Text (System.DateTime.UtcNow.ToString())]
+                        Div [ClientSide <@ Client.Content () @>]
+                    ]
+                )
         )
 
     [<EntryPoint>]
     let main argv = 
-        Application.Run(Sitelet)
+        Warp.Run app
         0 // return an integer exit code

@@ -1,8 +1,9 @@
-﻿namespace WebSharper.Warp
+﻿namespace WebSharper
 
 open System
 open System.IO
 open System.Reflection
+open System.Runtime.CompilerServices
 open WebSharper.Sitelets
 open global.Owin
 open Microsoft.Owin.Hosting
@@ -129,29 +130,15 @@ module internal Compilation =
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.js", asm.ReadableJavaScript)
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.min.js", asm.CompressedJavaScript)
 
-/// Utilities to work with Warp applications
-type Application<'T when 'T : equality> =
-    /// Creates a Warp application based on an Action->Content mapping
-    static member Create(f: 'T -> Content<'T>) = Sitelet.Infer f
+type Warp<'T when 'T : equality> = Sitelet<'T>
 
-    /// Creates an HTML page response with the specified body
-    static member PageWithBody (f: Context<_> -> #seq<Element>) =
-        PageContent (fun ctx ->
-            { Page.Default with
-                Body = f ctx }
-        )
+/// Warp application.
+[<Extension>]
+type SiteletExtensions =
 
-    /// Creates an HTML page response with the specified head and body
-    static member PageWithHeadAndBody (f: Context<_> -> #seq<Element> * #seq<Element>) =
-        PageContent (fun ctx ->
-            let head, body = f ctx
-            { Page.Default with
-                Head = head
-                Body = body }
-        )
-
-    /// Runs a Warp application
-    static member Run(sitelet: Sitelet<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
+    /// Runs the Warp application.
+    [<Extension>]
+    static member Run(sitelet: Warp<'T>, ?debug, ?port, ?rootDir, ?scripted, ?assembly) =
         let scripted = defaultArg scripted false
         let asm =
             match assembly with
@@ -185,3 +172,30 @@ type Application<'T when 'T : equality> =
                 stdin.ReadLine() |> ignore
             with e ->
                 eprintfn "Error starting website:\n%s" e.Message
+
+type Warp =
+
+    /// Creates a Warp application based on an Action->Content mapping.
+    static member CreateApplication(f: Context<'T> -> 'T -> Content<'T>) : Warp<'T> =
+        Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
+
+    /// Creates an HTML page response.
+    static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
+        PageContent (fun ctx ->
+            { Page.Default with
+                Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
+                Doctype = Doctype
+                Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
+                Title = Title
+            }
+        )
+
+    static member Run (app: Sitelet<'T>) =
+        app.Run()
+
+type EndPointAttribute = Sitelets.EndPointAttribute
+type MethodAttribute = Sitelets.MethodAttribute
+type JsonAttribute = Sitelets.JsonAttribute
+type QueryAttribute = Sitelets.QueryAttribute
+type FormDataAttribute = Sitelets.FormDataAttribute
+type WildCardAttribute = Sitelets.WildcardAttribute
