@@ -13,6 +13,10 @@ open WebSharper
 open WebSharper.Owin
 open WebSharper.Html.Server
 
+module SPA =
+    type Endpoints =
+        | [<EndPoint "GET /">] Home
+    
 module internal Compilation =
 
     module PC = WebSharper.PathConventions
@@ -194,10 +198,6 @@ type Warp internal (url: string, stop: unit -> unit) =
             eprintfn "%A" e
             1
 
-    /// Creates a Warp application based on an Action->Content mapping.
-    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
-        Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
-
     /// Creates an HTML page response.
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
         PageContent (fun ctx ->
@@ -209,6 +209,33 @@ type Warp internal (url: string, stop: unit -> unit) =
             }
         )
 
+    /// Creates a Warp application based on an Action->Content mapping.
+    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
+        Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
+
+    /// Creates a Warp single page application (SPA) based on the body of that single page.
+    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> #seq<Element>) =
+        Warp.CreateApplication (fun ctx endpoints ->
+            match endpoints with
+            | SPA.Endpoints.Home ->
+                Warp.Page(
+                    Body = f ctx
+                )
+        )
+
+    /// Creates a Warp single page application (SPA) that responds with the given text.
+    static member Text out =
+        Warp.CreateApplication (fun ctx endpoint ->
+            match endpoint with
+            | SPA.Endpoints.Home ->
+                Warp.Page(
+                    Body = [Text out]
+                )
+        )
+
+
+type ClientAttribute = WebSharper.Pervasives.JavaScriptAttribute
+type ServerAttribute = WebSharper.Pervasives.RpcAttribute
 type EndPointAttribute = Sitelets.EndPointAttribute
 type MethodAttribute = Sitelets.MethodAttribute
 type JsonAttribute = Sitelets.JsonAttribute
