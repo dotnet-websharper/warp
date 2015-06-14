@@ -62,7 +62,7 @@ let MySite =
                 Body =
                     [
                         H1 [Text "Hello world!"]
-                        "About" => Endpoint.About
+                        "About" => Endpoints.About
                     ]
             )
         | Endpoints.About ->
@@ -70,7 +70,7 @@ let MySite =
                 Body =
                     [
                         P [Text "This is a simple app"]
-                        "Home" => Endpoint.Home
+                        "Home" => Endpoints.Home
                     ]
             )
     )
