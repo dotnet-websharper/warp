@@ -12,6 +12,13 @@ To get started with Warp is super-easy, all you need is to open a new F# Console
 Install-Package WebSharper.Warp
 ```
 
+Or if you use [Paket](http://fsprojects.github.io/Paket/):
+
+```
+paket init
+paket add nuget WebSharper.Warp
+```
+
 # Hello world!
 
 The simplest Warp site just serves text and consist of a single endpoint (`/`), by default listening on `http://localhost:9000`.
@@ -208,6 +215,12 @@ let MySite =
         [H1 [Text "Hello world!"]])
 
 do Warp.RunAndWaitForInput(MySite) |> ignore
+```
+
+If you use Paket, then you should replace the `#`-lines above with this one:
+
+```fsharp
+#load "../packages/WebSharper.Warp/tools/reference-nover.fsx"
 ```
 
 In FSI, you should see:
