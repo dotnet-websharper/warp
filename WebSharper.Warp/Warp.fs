@@ -215,22 +215,20 @@ type Warp internal (url: string, stop: unit -> unit) =
 
     /// Creates a Warp single page application (SPA) based on the body of that single page.
     static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> #seq<Element>) =
-        Warp.CreateApplication (fun ctx endpoints ->
-            match endpoints with
-            | SPA.Endpoints.Home ->
-                Warp.Page(
-                    Body = f ctx
-                )
+        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+            Warp.Page(Body = f ctx)
+        )
+
+    /// Creates a Warp single page application (SPA). Use Warp.Page() to create the returned page.
+    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Content<SPA.Endpoints>) =
+        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+            f ctx
         )
 
     /// Creates a Warp single page application (SPA) that responds with the given text.
     static member Text out =
-        Warp.CreateApplication (fun ctx endpoint ->
-            match endpoint with
-            | SPA.Endpoints.Home ->
-                Warp.Page(
-                    Body = [Text out]
-                )
+        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+            Warp.Page(Body = [Text out])
         )
 
 
