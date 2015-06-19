@@ -1,9 +1,11 @@
 ﻿namespace WebSharper
 
 open System
+open System.Collections.Generic
 open System.IO
 open System.Reflection
 open System.Runtime.CompilerServices
+open System.Threading.Tasks
 open WebSharper.Sitelets
 open global.Owin
 open Microsoft.Owin.Hosting
@@ -136,6 +138,58 @@ module internal Compilation =
 
 type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 
+[<Extension>]
+module Owin =
+
+    /// Warp OWIN middleware options.
+    type WarpOptions<'EndPoint when 'EndPoint : equality>(assembly, ?debug, ?rootDir, ?scripted) =
+        let debug = defaultArg debug false
+        let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
+        let scripted = defaultArg scripted false
+
+        member this.Assembly = assembly
+        member this.Debug = debug
+        member this.RootDir = rootDir
+        member this.Scripted = scripted
+
+    /// Warp OWIN middleware.
+    /// next: The next OWIN middleware to run, if any.
+    /// sitelet: The Warp application to run.
+    /// options: Options that instruct the middleware how to run and where to look for files.
+    type WarpMiddleware<'EndPoint when 'EndPoint : equality>(next: Owin.AppFunc, sitelet: WarpApplication<'EndPoint>, options: WarpOptions<'EndPoint>) =
+        let exec =
+            // Compile only when the app starts and not on every request.
+            match Compilation.compile options.Assembly with
+            | None -> failwith "Failed to compile with WebSharper"
+            | Some (asm, refs) ->
+                Compilation.outputFiles options.RootDir refs
+                Compilation.outputFile options.RootDir asm
+                // OWIN middleware form a Russian doll, innermost -> outermost
+                let siteletMw =
+                    WebSharper.Owin.SiteletMiddleware(
+                        next, 
+                        Options.Create(asm.Info)
+                            .WithServerRootDirectory(options.RootDir)
+                            .WithDebug(options.Debug),
+                        sitelet)
+                let staticFilesMw =
+                    Microsoft.Owin.StaticFiles.StaticFileMiddleware(
+                        AppFunc siteletMw.Invoke,
+                        StaticFileOptions(
+                            FileSystem = PhysicalFileSystem(options.RootDir)))
+                staticFilesMw.Invoke
+
+        /// Invokes the Warp middleware with the provided environment dictionary.
+        member this.Invoke(env: IDictionary<string, obj>) = exec env
+
+    /// Adds the Warp middleware to an Owin.IAppBuilder pipeline.
+    [<Extension>]
+    let UseWarp(appB: Owin.IAppBuilder, sitelet: WarpApplication<'EndPoint>, options) =
+        Owin.MidFunc(fun next ->
+            let mw = WarpMiddleware<_>(next, sitelet, options)
+            Owin.AppFunc mw.Invoke)
+        |> appB.Use
+
 /// Utilities to work with Warp applications.
 [<Extension>]
 type Warp internal (url: string, stop: unit -> unit) =
@@ -152,34 +206,20 @@ type Warp internal (url: string, stop: unit -> unit) =
     /// Runs the Warp application.
     [<Extension>]
     static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
-        let scripted = defaultArg scripted false
-        let asm =
+        let assembly =
             match assembly with
             | Some a -> a
             | None -> Assembly.GetCallingAssembly()
-        match Compilation.compile asm with
-        | None -> failwith "Failed to compile with WebSharper"
-        | Some (asm, refs) ->
-            let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
-            let url = defaultArg url "http://localhost:9000/"
-            let url = if not (url.EndsWith "/") then url + "/" else url
-            let debug = defaultArg debug false
-            Compilation.outputFiles rootDir refs
-            Compilation.outputFile rootDir asm
-            try
-                let server = WebApp.Start(url, fun appB ->
-                    appB.UseStaticFiles(
-                            StaticFileOptions(
-                                FileSystem = PhysicalFileSystem(rootDir)))
-                        .UseCustomSitelet(
-                            Options.Create(asm.Info)
-                                .WithServerRootDirectory(rootDir)
-                                .WithDebug(debug),
-                            sitelet)
-                    |> ignore)
-                new Warp(url, server.Dispose)
-            with e ->
-                failwithf "Error starting website:\n%s" (e.ToString())
+        let url = defaultArg url "http://localhost:9000/"
+        let url = if not (url.EndsWith "/") then url + "/" else url
+        let options = Owin.WarpOptions<_>(assembly, ?debug = debug, ?rootDir = rootDir, ?scripted = scripted)
+        try
+            let server = WebApp.Start(url, fun appB ->
+                Owin.UseWarp(appB, sitelet, options)
+                |> ignore)
+            new Warp(url, server.Dispose)
+        with e ->
+            failwithf "Error starting website:\n%s" (e.ToString())
 
     /// Runs the Warp application and waits for standard input.
     [<Extension>]
