@@ -15,6 +15,23 @@ open WebSharper
 open WebSharper.Owin
 open WebSharper.Html.Server
 
+[<AutoOpen>]
+module Extensions =
+    open WebSharper.Html.Server
+
+    type Sitelets.Page with
+        member this.WithStyleSheet (href: string) =
+            let css = Link [Rel "stylesheet"; HRef href]
+            { this with
+                Head = Seq.append this.Head [css]
+            }
+
+        member this.WithJavaScript (href: string) =
+            let css = Script [Type "text/javascript"; Src href]
+            { this with
+                Head = Seq.append this.Head [css]
+            }
+
 module SPA =
     type Endpoints =
         | [<EndPoint "GET /">] Home
@@ -240,18 +257,20 @@ type Warp internal (url: string, stop: unit -> unit) =
 
     /// Creates an HTML page response.
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
-        PageContent (fun ctx ->
-            { Page.Default with
-                Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
-                Doctype = Doctype
-                Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
-                Title = Title
-            }
-        )
+        { Page.Default with
+            Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
+            Doctype = Doctype
+            Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
+            Title = Title
+        }
 
     /// Creates a Warp application based on an Action->Content mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
+
+    /// Creates a Warp application based on an Action->Page mapping.
+    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Page) : WarpApplication<'EndPoints> =
+        Sitelet.InferAsync (fun ctx action -> async.Return (PageContent (fun _ -> (f ctx action))))
 
     /// Creates a Warp single page application (SPA) based on the body of that single page.
     static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> #seq<Element>) =
@@ -263,6 +282,12 @@ type Warp internal (url: string, stop: unit -> unit) =
     static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Content<SPA.Endpoints>) =
         Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
             f ctx
+        )
+
+    /// Creates a Warp single page application (SPA).
+    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Page) =
+        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+            PageContent f
         )
 
     /// Creates a Warp single page application (SPA) that responds with the given text.
@@ -280,3 +305,5 @@ type JsonAttribute = Sitelets.JsonAttribute
 type QueryAttribute = Sitelets.QueryAttribute
 type FormDataAttribute = Sitelets.FormDataAttribute
 type WildCardAttribute = Sitelets.WildcardAttribute
+
+type Page = Sitelets.Page
