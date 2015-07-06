@@ -112,7 +112,7 @@ module internal Compilation =
             |> Seq.map loader.LoadFile
             |> Seq.toList
         let opts = { FE.Options.Default with References = refs }
-        let compiler = FE.Prepare opts (failwithf "%O")
+        let compiler = FE.Prepare opts (eprintfn "%O")
         compiler.Compile(<@ () @>, context = asm)
         |> Option.map (fun asm -> asm, refs)
 
