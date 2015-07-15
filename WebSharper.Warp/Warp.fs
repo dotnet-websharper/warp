@@ -207,6 +207,8 @@ module Owin =
             Owin.AppFunc mw.Invoke)
         |> appB.Use
 
+open WebSharper.UI.Next
+
 /// Utilities to work with Warp applications.
 [<Extension>]
 type Warp internal (url: string, stop: unit -> unit) =
@@ -264,11 +266,35 @@ type Warp internal (url: string, stop: unit -> unit) =
             Title = Title
         }
 
-    /// Creates a Warp application based on an Action->Content mapping.
+    /// Creates an HTML page from a `Doc`.
+    static member Doc (doc: Doc) = Server.Doc.AsPage doc
+
+    /// Creates an HTML page response from `Doc`'s.
+    static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
+        { Page.Default with
+            Body =
+                match Body with
+                | Some h ->
+                    h :> seq<_>
+                    |> Seq.map Server.Doc.AsElements
+                    |> Seq.concat
+                | None -> Seq.empty
+            Doctype = Doctype
+            Head =
+                match Head with
+                | Some h ->
+                    h :> seq<_>
+                    |> Seq.map Server.Doc.AsElements
+                    |> Seq.concat
+                | None -> Seq.empty
+            Title = Title
+        }
+
+    /// Creates a Warp application based on an `Action->Content` mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
 
-    /// Creates a Warp application based on an Action->Page mapping.
+    /// Creates a Warp application based on an `Action->Page` mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Page) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (PageContent (fun _ -> (f ctx action))))
 
@@ -278,7 +304,7 @@ type Warp internal (url: string, stop: unit -> unit) =
             Warp.Page(Body = f ctx)
         )
 
-    /// Creates a Warp single page application (SPA). Use Warp.Page() to create the returned page.
+    /// Creates a Warp single page application (SPA). Use `Warp.Page()` to create the page returned.
     static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Content<SPA.Endpoints>) =
         Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
             f ctx
