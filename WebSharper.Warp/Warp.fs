@@ -207,6 +207,8 @@ module Owin =
             Owin.AppFunc mw.Invoke)
         |> appB.Use
 
+open WebSharper.UI.Next
+
 /// Utilities to work with Warp applications.
 [<Extension>]
 type Warp internal (url: string, stop: unit -> unit) =
