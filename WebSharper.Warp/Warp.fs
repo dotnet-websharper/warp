@@ -259,44 +259,42 @@ type Warp internal (url: string, stop: unit -> unit) =
 
     /// Creates an HTML page response.
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
-        { Page.Default with
-            Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
-            Doctype = Doctype
-            Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
-            Title = Title
-        }
+        Content.PageContent <| fun _ ->
+            { Page.Default with
+                Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
+                Doctype = Doctype
+                Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
+                Title = Title
+            }
 
     /// Creates an HTML page from a `Doc`.
-    static member Doc (doc: Doc) = Server.Doc.AsPage doc
+    static member Doc (doc: Doc) = Server.Doc.AsContent doc
 
     /// Creates an HTML page response from `Doc`'s.
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
-        { Page.Default with
-            Body =
-                match Body with
-                | Some h ->
-                    h :> seq<_>
-                    |> Seq.map Server.Doc.AsElements
-                    |> Seq.concat
-                | None -> Seq.empty
-            Doctype = Doctype
-            Head =
-                match Head with
-                | Some h ->
-                    h :> seq<_>
-                    |> Seq.map Server.Doc.AsElements
-                    |> Seq.concat
-                | None -> Seq.empty
-            Title = Title
-        }
+        Content.PageContent <| fun _ ->
+            { Page.Default with
+                Body =
+                    match Body with
+                    | Some h ->
+                        h :> seq<_>
+                        |> Seq.map Server.Doc.AsElements
+                        |> Seq.concat
+                    | None -> Seq.empty
+                Doctype = Doctype
+                Head =
+                    match Head with
+                    | Some h ->
+                        h :> seq<_>
+                        |> Seq.map Server.Doc.AsElements
+                        |> Seq.concat
+                    | None -> Seq.empty
+                Title = Title
+            }
 
     /// Creates a Warp application based on an `Action->Content` mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
-
-    /// Creates a Warp application based on an `Action->Page` mapping.
-    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Page) : WarpApplication<'EndPoints> =
-        Sitelet.InferAsync (fun ctx action -> async.Return (PageContent (fun _ -> (f ctx action))))
 
     /// Creates a Warp single page application (SPA) based on the body of that single page.
     static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> #seq<Element>) =
