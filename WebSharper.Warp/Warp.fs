@@ -292,6 +292,10 @@ type Warp internal (url: string, stop: unit -> unit) =
                 Title = Title
             }
 
+    /// Creates a JSON content.
+    static member Json data =
+        Content.JsonContent <| fun _ -> data
+
     /// Creates a Warp application based on an `Action->Content` mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
