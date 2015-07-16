@@ -267,7 +267,11 @@ type Warp internal (url: string, stop: unit -> unit) =
                 Title = Title
             }
 
-    /// Creates an HTML page from a `Doc`.
+    /// Creates an HTML page from an <html> element.
+    static member Page (doc: Element) =
+        Content.WithTemplate (Content.Template.FromHtmlElement doc) ignore
+
+    /// Creates an HTML page from an <html> `Doc`.
     static member Doc (doc: Doc) = Server.Doc.AsContent doc
 
     /// Creates an HTML page response from `Doc`'s.
