@@ -3,5 +3,6 @@
   <dependencies>
     <dependency name="websharper" rev="latest.integration"  />
     <dependency name="websharper.owin" rev="latest.integration"  />
+    <dependency name="websharper.ui.next" rev="latest.integration"  />
   </dependencies>
 </ivy-module>
