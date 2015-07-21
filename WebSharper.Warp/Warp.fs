@@ -207,7 +207,10 @@ module Owin =
             Owin.AppFunc mw.Invoke)
         |> appB.Use
 
+#if NO_UINEXT
+#else
 open WebSharper.UI.Next
+#endif
 
 /// Utilities to work with Warp applications.
 [<Extension>]
@@ -267,6 +270,8 @@ type Warp internal (url: string, stop: unit -> unit) =
                 Title = Title
             }
 
+#if NO_UINEXT
+#else
     /// Creates an HTML page from an <html> element.
     static member Page (doc: Element) =
         Content.WithTemplate (Content.Template.FromHtmlElement doc) ignore
@@ -295,6 +300,7 @@ type Warp internal (url: string, stop: unit -> unit) =
                     | None -> Seq.empty
                 Title = Title
             }
+#endif
 
     /// Creates a JSON content.
     static member Json data =
