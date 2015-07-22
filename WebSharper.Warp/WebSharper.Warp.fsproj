@@ -33,6 +33,7 @@
     <DocumentationFile>../build/net45/WebSharper.Warp.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Warp.fsi" />
     <Compile Include="Warp.fs" />
   </ItemGroup>
   <PropertyGroup>

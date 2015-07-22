@@ -33,7 +33,7 @@ module Extensions =
             }
 
 module SPA =
-    type Endpoints =
+    type EndPoint =
         | [<EndPoint "GET /">] Home
     
 module internal Compilation =
@@ -158,7 +158,6 @@ type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 [<Extension>]
 module Owin =
 
-    /// Warp OWIN middleware options.
     type WarpOptions<'EndPoint when 'EndPoint : equality>(assembly, ?debug, ?rootDir, ?scripted) =
         let debug = defaultArg debug false
         let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
@@ -169,10 +168,6 @@ module Owin =
         member this.RootDir = rootDir
         member this.Scripted = scripted
 
-    /// Warp OWIN middleware.
-    /// next: The next OWIN middleware to run, if any.
-    /// sitelet: The Warp application to run.
-    /// options: Options that instruct the middleware how to run and where to look for files.
     type WarpMiddleware<'EndPoint when 'EndPoint : equality>(next: Owin.AppFunc, sitelet: WarpApplication<'EndPoint>, options: WarpOptions<'EndPoint>) =
         let exec =
             // Compile only when the app starts and not on every request.
@@ -196,7 +191,6 @@ module Owin =
                             FileSystem = PhysicalFileSystem(options.RootDir)))
                 staticFilesMw.Invoke
 
-        /// Invokes the Warp middleware with the provided environment dictionary.
         member this.Invoke(env: IDictionary<string, obj>) = exec env
 
     /// Adds the Warp middleware to an Owin.IAppBuilder pipeline.
@@ -212,20 +206,16 @@ module Owin =
 open WebSharper.UI.Next
 #endif
 
-/// Utilities to work with Warp applications.
 [<Extension>]
 type Warp internal (url: string, stop: unit -> unit) =
 
-    /// Get the URL on which the Warp application is listening.
     member this.Url = url
 
-    /// Stop the running Warp application.
     member this.Stop() = stop()
 
     interface System.IDisposable with
         member this.Dispose() = stop()
 
-    /// Runs the Warp application.
     [<Extension>]
     static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
         let assembly =
@@ -243,7 +233,6 @@ type Warp internal (url: string, stop: unit -> unit) =
         with e ->
             failwithf "Error starting website:\n%s" (e.ToString())
 
-    /// Runs the Warp application and waits for standard input.
     [<Extension>]
     static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
         try
@@ -260,7 +249,6 @@ type Warp internal (url: string, stop: unit -> unit) =
             eprintfn "%A" e
             1
 
-    /// Creates an HTML page response.
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
         Content.PageContent <| fun _ ->
             { Page.Default with
@@ -270,16 +258,13 @@ type Warp internal (url: string, stop: unit -> unit) =
                 Title = Title
             }
 
-#if NO_UINEXT
-#else
-    /// Creates an HTML page from an <html> element.
     static member Page (doc: Element) =
         Content.WithTemplate (Content.Template.FromHtmlElement doc) ignore
 
-    /// Creates an HTML page from an <html> `Doc`.
+#if NO_UINEXT
+#else
     static member Doc (doc: Doc) = Server.Doc.AsContent doc
 
-    /// Creates an HTML page response from `Doc`'s.
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
         Content.PageContent <| fun _ ->
             { Page.Default with
@@ -302,35 +287,24 @@ type Warp internal (url: string, stop: unit -> unit) =
             }
 #endif
 
-    /// Creates a JSON content.
     static member Json data =
         Content.JsonContent <| fun _ -> data
 
-    /// Creates a Warp application based on an `Action->Content` mapping.
     static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
         Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
 
-    /// Creates a Warp single page application (SPA) based on the body of that single page.
-    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> #seq<Element>) =
-        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+    static member CreateSPA (f: Sitelets.Context<SPA.EndPoint> -> #seq<Element>) =
+        Warp.CreateApplication (fun ctx SPA.EndPoint.Home ->
             Warp.Page(Body = f ctx)
         )
 
-    /// Creates a Warp single page application (SPA). Use Warp.Page() to create the returned page.
-    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Content<SPA.Endpoints>) =
-        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+    static member CreateSPA (f: Sitelets.Context<SPA.EndPoint> -> Sitelets.Content<SPA.EndPoint>) =
+        Warp.CreateApplication (fun ctx SPA.EndPoint.Home ->
             f ctx
         )
 
-    /// Creates a Warp single page application (SPA).
-    static member CreateSPA (f: Sitelets.Context<SPA.Endpoints> -> Sitelets.Page) =
-        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
-            PageContent f
-        )
-
-    /// Creates a Warp single page application (SPA) that responds with the given text.
     static member Text out =
-        Warp.CreateApplication (fun ctx SPA.Endpoints.Home ->
+        Warp.CreateApplication (fun ctx SPA.EndPoint.Home ->
             Warp.Page(Body = [Text out])
         )
 
@@ -343,5 +317,3 @@ type JsonAttribute = Sitelets.JsonAttribute
 type QueryAttribute = Sitelets.QueryAttribute
 type FormDataAttribute = Sitelets.FormDataAttribute
 type WildCardAttribute = Sitelets.WildcardAttribute
-
-type Page = Sitelets.Page
