@@ -100,21 +100,22 @@ type Warp =
         -> int
 
     /// Creates an HTML page response.
+    /// Equivalent to Content.Page.
     static member Page
         : ?Body: #seq<Element>
         * ?Head: #seq<Element>
         * ?Title: string
         * ?Doctype: string
-        -> Content<'EndPoint>
+        -> Async<Content<'EndPoint>>
 
     /// Creates an HTML page from an <html> element.
-    static member Page : Element -> Content<'EndPoint>
+    static member Page : Element -> Async<Content<'EndPoint>>
 
 #if NO_UINEXT
 #else
 
     /// Creates an HTML page from an <html> `Doc`.
-    static member Doc : Doc -> Content<'EndPoint>
+    static member Doc : Doc -> Async<Content<'EndPoint>>
 
     /// Creates an HTML page response from `Doc`'s.
     static member Doc
@@ -122,16 +123,17 @@ type Warp =
         * ?Head: #seq<Doc>
         * ?Title: string
         * ?Doctype: string
-        -> Content<'EndPoint>
+        -> Async<Content<'EndPoint>>
 
 #endif
 
     /// Creates a JSON-encoded content.
-    static member Json : 'Data -> Content<'EndPoint>
+    static member Json : 'Data -> Async<Content<'EndPoint>>
 
     /// Creates a Warp application based on an `Action->Content` mapping.
+    /// Equivalent to Sitelet.Infer.
     static member CreateApplication
-        : (Context<'EndPoint> -> 'EndPoint -> Content<'EndPoint>)
+        : (Context<'EndPoint> -> 'EndPoint -> Async<Content<'EndPoint>>)
         -> WarpApplication<'EndPoint>
 
     /// Creates a Warp single page application (SPA) based on the body of that single page.
@@ -141,7 +143,7 @@ type Warp =
 
     /// Creates a Warp single page application (SPA). Use Warp.Page() to create the returned page.
     static member CreateSPA
-        : (Context<SPA.EndPoint> -> Content<SPA.EndPoint>)
+        : (Context<SPA.EndPoint> -> Async<Content<SPA.EndPoint>>)
         -> WarpApplication<SPA.EndPoint>
 
     /// Creates a Warp single page application (SPA) that responds with the given text.

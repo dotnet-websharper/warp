@@ -250,13 +250,7 @@ type Warp internal (url: string, stop: unit -> unit) =
             1
 
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
-        Content.PageContent <| fun _ ->
-            { Page.Default with
-                Body = match Body with Some h -> h :> seq<_> | None -> Seq.empty
-                Doctype = Doctype
-                Head = match Head with Some h -> h :> seq<_> | None -> Seq.empty
-                Title = Title
-            }
+        Content.Page(?Body = Body, ?Doctype = Doctype, ?Head = Head, ?Title = Title)
 
     static member Page (doc: Element) =
         Content.WithTemplate (Content.Template.FromHtmlElement doc) ignore
@@ -266,39 +260,38 @@ type Warp internal (url: string, stop: unit -> unit) =
     static member Doc (doc: Doc) = Server.Doc.AsContent doc
 
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
-        Content.PageContent <| fun _ ->
-            { Page.Default with
-                Body =
-                    match Body with
-                    | Some h ->
-                        h :> seq<_>
-                        |> Seq.map Server.Doc.AsElements
-                        |> Seq.concat
-                    | None -> Seq.empty
-                Doctype = Doctype
-                Head =
-                    match Head with
-                    | Some h ->
-                        h :> seq<_>
-                        |> Seq.map Server.Doc.AsElements
-                        |> Seq.concat
-                    | None -> Seq.empty
-                Title = Title
-            }
+        Content.Page(
+            Body =
+                (match Body with
+                | Some h ->
+                    h :> seq<_>
+                    |> Seq.map Server.Doc.AsElements
+                    |> Seq.concat
+                | None -> Seq.empty),
+            ?Doctype = Doctype,
+            Head =
+                (match Head with
+                | Some h ->
+                    h :> seq<_>
+                    |> Seq.map Server.Doc.AsElements
+                    |> Seq.concat
+                | None -> Seq.empty),
+            ?Title = Title
+        )
 #endif
 
     static member Json data =
-        Content.JsonContent <| fun _ -> data
+        Content.Json data
 
-    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Content<'EndPoints>) : WarpApplication<'EndPoints> =
-        Sitelet.InferAsync (fun ctx action -> async.Return (f ctx action))
+    static member CreateApplication(f: Context<'EndPoints> -> 'EndPoints -> Async<Content<'EndPoints>>) : WarpApplication<'EndPoints> =
+        Sitelet.Infer f
 
-    static member CreateSPA (f: Sitelets.Context<SPA.EndPoint> -> #seq<Element>) =
+    static member CreateSPA (f: Context<SPA.EndPoint> -> #seq<Element>) =
         Warp.CreateApplication (fun ctx SPA.EndPoint.Home ->
             Warp.Page(Body = f ctx)
         )
 
-    static member CreateSPA (f: Sitelets.Context<SPA.EndPoint> -> Sitelets.Content<SPA.EndPoint>) =
+    static member CreateSPA (f: Context<SPA.EndPoint> -> Async<Content<SPA.EndPoint>>) =
         Warp.CreateApplication (fun ctx SPA.EndPoint.Home ->
             f ctx
         )
