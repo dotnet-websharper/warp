@@ -115,6 +115,7 @@ type Warp =
 #else
 
     /// Creates an HTML page from an <html> `Doc`.
+    /// Equivalent to Content.Doc.
     static member Doc : Doc -> Async<Content<'EndPoint>>
 
     /// Creates an HTML page response from `Doc`'s.

@@ -204,6 +204,7 @@ module Owin =
 #if NO_UINEXT
 #else
 open WebSharper.UI.Next
+open WebSharper.UI.Next.Server
 #endif
 
 [<Extension>]
@@ -257,7 +258,7 @@ type Warp internal (url: string, stop: unit -> unit) =
 
 #if NO_UINEXT
 #else
-    static member Doc (doc: Doc) = Server.Doc.AsContent doc
+    static member Doc (doc: Doc) = Content.Doc doc
 
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
         Content.Page(
