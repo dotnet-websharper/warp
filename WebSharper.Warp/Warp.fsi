@@ -100,7 +100,7 @@ type Warp =
         -> int
 
     /// Creates an HTML page response.
-    /// Equivalent to Content.Page.
+    [<Obsolete "Use Content.Page">]
     static member Page
         : ?Body: #seq<Element>
         * ?Head: #seq<Element>
@@ -116,6 +116,7 @@ type Warp =
 
     /// Creates an HTML page from an <html> `Doc`.
     /// Equivalent to Content.Doc.
+    [<Obsolete "Use Content.Doc">]
     static member Doc : Doc -> Async<Content<'EndPoint>>
 
     /// Creates an HTML page response from `Doc`'s.
@@ -129,10 +130,11 @@ type Warp =
 #endif
 
     /// Creates a JSON-encoded content.
+    [<Obsolete "Use Content.Json">]
     static member Json : 'Data -> Async<Content<'EndPoint>>
 
     /// Creates a Warp application based on an `Action->Content` mapping.
-    /// Equivalent to Sitelet.Infer.
+    [<Obsolete "Use Application.MultiPage">]
     static member CreateApplication
         : (Context<'EndPoint> -> 'EndPoint -> Async<Content<'EndPoint>>)
         -> WarpApplication<'EndPoint>
@@ -143,11 +145,13 @@ type Warp =
         -> WarpApplication<SPA.EndPoint>
 
     /// Creates a Warp single page application (SPA). Use Warp.Page() to create the returned page.
+    [<Obsolete "Use Application.SinglePage">]
     static member CreateSPA
         : (Context<SPA.EndPoint> -> Async<Content<SPA.EndPoint>>)
         -> WarpApplication<SPA.EndPoint>
 
     /// Creates a Warp single page application (SPA) that responds with the given text.
+    [<Obsolete "Use Application.Text">]
     static member Text : string -> WarpApplication<SPA.EndPoint>
 
 type ClientAttribute = WebSharper.Pervasives.JavaScriptAttribute
