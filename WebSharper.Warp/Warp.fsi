@@ -119,7 +119,8 @@ type Warp =
     [<Obsolete "Use Content.Doc">]
     static member Doc : Doc -> Async<Content<'EndPoint>>
 
-    /// Creates an HTML page response from `Doc`'s.
+    /// Creates an HTML page response from `Doc`s.
+    [<Obsolete "Use Content.Doc">]
     static member Doc
         : ?Body: #seq<Doc>
         * ?Head: #seq<Doc>

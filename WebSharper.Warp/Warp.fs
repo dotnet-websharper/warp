@@ -261,24 +261,7 @@ type Warp internal (url: string, stop: unit -> unit) =
     static member Doc (doc: Doc) = Content.Doc doc
 
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
-        Content.Page(
-            Body =
-                (match Body with
-                | Some h ->
-                    h :> seq<_>
-                    |> Seq.map Server.Doc.AsElements
-                    |> Seq.concat
-                | None -> Seq.empty),
-            ?Doctype = Doctype,
-            Head =
-                (match Head with
-                | Some h ->
-                    h :> seq<_>
-                    |> Seq.map Server.Doc.AsElements
-                    |> Seq.concat
-                | None -> Seq.empty),
-            ?Title = Title
-        )
+        Content.Doc(?Body = Body, ?Doctype = Doctype, ?Head = Head, ?Title = Title)
 #endif
 
     static member Json data =
