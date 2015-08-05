@@ -1,6 +1,7 @@
 ﻿namespace WebSharper.Warp.Test
 
 open WebSharper
+open WebSharper.Sitelets
 
 type EndPoints =
     | [<EndPoint "/">] Index
@@ -21,10 +22,10 @@ module Server =
     open WebSharper.Html.Server
 
     let app =
-        Warp.CreateApplication(fun ctx endpoint ->
+        Application.MultiPage(fun ctx endpoint ->
             match endpoint with
             | EndPoints.Index ->
-                Warp.Page(
+                Content.Page(
                     Title = "Welcome to my site!",
                     Body = [
                         Div [Text (System.DateTime.UtcNow.ToString())]
@@ -35,4 +36,4 @@ module Server =
 
     [<EntryPoint>]
     let main argv = 
-        Warp.RunAndWaitForInput app
+        Warp.RunAndWaitForInput(app, urls = ["http://localhost:9000"; "http://127.0.0.1:9000"])

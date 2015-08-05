@@ -64,21 +64,21 @@ type Warp =
 
     interface IDisposable
 
-    /// Get the URL on which the Warp application is listening.
-    member Url : string
+    /// Get the list of URL prefixes on which the Warp application is listening.
+    member Urls : list<string>
 
     /// Stop the running Warp application.
     member Stop : unit -> unit
 
     /// Runs the Warp application.
     /// debug: true if the served JavaScript files should be readable, false for compressed.
-    /// url: the URL on which to listen; defaults to "http://localhost:9000/".
+    /// urls: a list of URL prefixes on which to listen; defaults to ["http://localhost:9000/"].
     /// rootDir: the root directory of the application.
     /// assembly: the main assembly to compile to JavaScript; defaults to the calling assembly.
     static member Run
         : app: WarpApplication<'EndPoint>
         * ?debug: bool
-        * ?url: string
+        * ?urls: list<string>
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
@@ -86,14 +86,14 @@ type Warp =
 
     /// Runs the Warp application and waits for standard input.
     /// debug: true if the served JavaScript files should be readable, false for compressed.
-    /// url: the URL on which to listen; defaults to "http://localhost:9000/".
+    /// urls: a list of URL prefixes on which to listen; defaults to ["http://localhost:9000/"].
     /// rootDir: the root directory of the application.
     /// assembly: the main assembly to compile to JavaScript; defaults to the calling assembly.
     /// Returns: an error code suitable for returning from the application's entry point.
     static member RunAndWaitForInput
         : app: WarpApplication<'EndPoint>
         * ?debug: bool
-        * ?url: string
+        * ?urls: list<string>
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
