@@ -208,9 +208,9 @@ open WebSharper.UI.Next.Server
 #endif
 
 [<Extension>]
-type Warp internal (url: string, stop: unit -> unit) =
+type Warp internal (urls: list<string>, stop: unit -> unit) =
 
-    member this.Url = url
+    member this.Urls = urls
 
     member this.Stop() = stop()
 
@@ -218,31 +218,33 @@ type Warp internal (url: string, stop: unit -> unit) =
         member this.Dispose() = stop()
 
     [<Extension>]
-    static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
+    static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly) =
         let assembly =
             match assembly with
             | Some a -> a
             | None -> Assembly.GetCallingAssembly()
-        let url = defaultArg url "http://localhost:9000/"
-        let url = if not (url.EndsWith "/") then url + "/" else url
+        let urls = defaultArg urls ["http://localhost:9000/"]
+        let urls = urls |> List.map (fun url -> if not (url.EndsWith "/") then url + "/" else url)
         let options = Owin.WarpOptions<_>(assembly, ?debug = debug, ?rootDir = rootDir, ?scripted = scripted)
         try
-            let server = WebApp.Start(url, fun appB ->
+            let startOptions = new StartOptions()
+            urls |> List.iter startOptions.Urls.Add
+            let server = WebApp.Start(startOptions, fun appB ->
                 Owin.UseWarp(appB, sitelet, options)
                 |> ignore)
-            new Warp(url, server.Dispose)
+            new Warp(urls, server.Dispose)
         with e ->
             failwithf "Error starting website:\n%s" (e.ToString())
 
     [<Extension>]
-    static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?url, ?rootDir, ?scripted, ?assembly) =
+    static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly) =
         try
             let assembly =
                 match assembly with
                 | Some a -> a
                 | None -> Assembly.GetCallingAssembly()
-            let warp = Warp.Run(app, ?debug = debug, ?url = url, ?rootDir = rootDir, ?scripted = scripted, assembly = assembly)
-            stdout.WriteLine("Serving {0}, press Enter to stop.", warp.Url)
+            let warp = Warp.Run(app, ?debug = debug, ?urls = urls, ?rootDir = rootDir, ?scripted = scripted, assembly = assembly)
+            stdout.WriteLine("Serving {0}, press Enter to stop.", warp.Urls)
             stdin.ReadLine() |> ignore
             warp.Stop()
             0
