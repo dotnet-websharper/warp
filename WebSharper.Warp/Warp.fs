@@ -158,6 +158,8 @@ type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 [<Extension>]
 module Owin =
 
+    type MiddlewareGenerator = Func<IAppBuilder, MidFunc>
+
     type WarpOptions<'EndPoint when 'EndPoint : equality>(assembly, ?debug, ?rootDir, ?scripted) =
         let debug = defaultArg debug false
         let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
@@ -195,16 +197,16 @@ module Owin =
 
     /// Adds the middlewares to an Owin.IAppBuilder pipeline.
     [<Extension>]
-    let UseMiddlewares(appB: Owin.IAppBuilder, middlewares: list<Owin.MidFunc>) =
-        let useMiddleware (appBuilder: Owin.IAppBuilder) (middleware: Owin.MidFunc) = appBuilder.Use(middleware)
-        middlewares |> List.fold useMiddleware appB |> ignore
+    let UseMiddlewares(appB: Owin.IAppBuilder, middlewareGenerators: list<MiddlewareGenerator>) =
+        let useMiddleware (appBuilder: Owin.IAppBuilder) (middlewareGenerator: MiddlewareGenerator) = middlewareGenerator.Invoke(appBuilder) |> appBuilder.Use
+        middlewareGenerators |> List.fold useMiddleware appB |> ignore
 
-    /// Creates an OWIN middleware from a sitelet.
+    /// Creates an OWIN middleware generator from a sitelet.
     [<Extension>]
-    let WarpMiddlewareFrom(sitelet: WarpApplication<'EndPoint>, options): Owin.MidFunc =
-        Owin.MidFunc(fun next ->
-            let mw = WarpMiddleware<_>(next, sitelet, options)
-            Owin.AppFunc mw.Invoke)
+    let WarpMiddlewareGeneratorFrom(sitelet: WarpApplication<'EndPoint>, options): MiddlewareGenerator =
+        let middleware = Owin.MidFunc(fun next -> let mw = WarpMiddleware<_>(next, sitelet, options)
+                                                  Owin.AppFunc mw.Invoke)
+        MiddlewareGenerator(fun appB -> middleware)
 
 #if NO_UINEXT
 #else
@@ -233,7 +235,7 @@ type Warp internal (urls: list<string>, stop: unit -> unit) =
 
         let before = defaultArg before List.Empty
         let options = Owin.WarpOptions<_>(assembly, ?debug = debug, ?rootDir = rootDir, ?scripted = scripted)
-        let middlewares = List.append before (Owin.WarpMiddlewareFrom(sitelet, options) :: List.Empty)
+        let middlewares = List.append before (Owin.WarpMiddlewareGeneratorFrom(sitelet, options) :: List.Empty)
         try
             let startOptions = new StartOptions()
             urls |> List.iter startOptions.Urls.Add

@@ -27,6 +27,8 @@ type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 [<Extension>]
 module Owin =
 
+    type MiddlewareGenerator = Func<Owin.IAppBuilder, WebSharper.Owin.MidFunc>
+
     /// Warp OWIN middleware options.
     type WarpOptions<'EndPoint when 'EndPoint : equality> =
 
@@ -83,7 +85,7 @@ type Warp =
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
-        * ?before: list<Owin.MidFunc> 
+        * ?before: list<Owin.MiddlewareGenerator> 
         -> Warp
 
     /// Runs the Warp application and waits for standard input.
@@ -100,7 +102,7 @@ type Warp =
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
-        * ?before: list<Owin.MidFunc>
+        * ?before: list<Owin.MiddlewareGenerator>
         -> int
 
     /// Creates an HTML page response.

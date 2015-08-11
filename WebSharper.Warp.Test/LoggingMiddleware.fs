@@ -39,10 +39,10 @@ module Logging =
         simpleResponseKeys |> Seq.iter (logEnvValue env)
         dictionaryResponseKeys |> Seq.iter (logDictValues env)
 
-    let toMiddleware (middlewareFunc: AppFunc -> Env -> Task): MidFunc =
-        MidFunc(fun next -> AppFunc(middlewareFunc next)) 
+    let toMiddlewareGenerator (middlewareFunc: AppFunc -> Env -> Task): MiddlewareGenerator =
+        MiddlewareGenerator(fun (appBuilder: Owin.IAppBuilder) -> MidFunc(fun next -> AppFunc(middlewareFunc next)))
 
-    let logger: MidFunc =
+    let logger: MiddlewareGenerator =
         let loggerFunc (next: AppFunc) (env: Env) = 
             async {
                 let context = new OwinContext(env)
@@ -79,4 +79,4 @@ module Logging =
                     do! responseBuffer.CopyToAsync(responseStream) |> Async.AwaitIAsyncResult |> Async.Ignore
 
             } |> Async.Ignore |> Async.StartAsTask :> Task
-        loggerFunc |> toMiddleware
+        loggerFunc |> toMiddlewareGenerator
