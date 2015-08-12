@@ -34,11 +34,9 @@ module Logging =
             | _ -> () 
 
         let logRequest (logger: ILogger) env = 
-            Console.WriteLine("Logging REQUEST: - Console")
             logger.WriteInformation(String.Format("{0}REQUEST:", Environment.NewLine))
             simpleRequestKeys |> Seq.iter (logEnvValue logger env)
             dictionaryRequestKeys |> Seq.iter (logDictValues logger env)
-            Console.WriteLine("End Logging REQUEST: - Console")
 
         let logResponse (logger: ILogger) env =
             logger.WriteInformation(String.Format("{0}RESPONSE:", Environment.NewLine))
