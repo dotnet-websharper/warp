@@ -4,6 +4,14 @@
 
 WebSharper Warp is a friction-less web development library for building scripted and standalone **full-stack** F# client-server applications. Warp is built on top of WebSharper and is designed to help you become more productive and benefit from the rich WebSharper features more quickly and more directly.  While Warp shorthands target the most typical applications (text, SPAs, multi-page) and easy exploration, you can extend your Warp applications with the full WebSharper capabilities at any time.
 
+**Update**: Note that many Warp shorthands have been integrated into WebSharper now (be sure to open `WebSharper.Sitelets`):
+
+ * `Warp.Page` -> `Content.Page`
+ * `Warp.Text` -> `Content.Text`
+ * `Warp.Json` -> `Content.Json`
+ * `Warp.CreateSPA` -> `Application.SinglePage`
+ * `Warp.CreateApplication` -> `Application.MultiPage`
+ 
 # Installing
 
 To get started with Warp is super-easy, all you need is to open a new F# Console Application (or any other F# project type if you want to script applications), and add `WebSharper.Warp` to it:
