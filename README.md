@@ -2,7 +2,7 @@
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/intellifactory/websharper.warp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-WebSharper Warp is a friction-less web development library for building **scripted** and **standalone** **full-stack** F# client-server applications. Warp is built on top of WebSharper and is designed to help you become more productive in a scripted or self-hosted fashion.
+WebSharper Warp is a friction-less web development library for building **scripted** and **standalone** **full-stack** F# client-server applications. Warp is built on top of WebSharper and is designed to help you become more productive in these scenarios by providing an API for on-the-fly compilation and an OWIN compliant server middleware for self-hosting or embedding sitelets in various compatible web servers.
 
 **Update**: Note that many Warp shorthands have been integrated into WebSharper now. To use these new shorthands, you don't need Warp, but be sure to open `WebSharper.Sitelets` instead.  (You can find the old getting started guide that uses Warp [here](getting-started.md)).
 
