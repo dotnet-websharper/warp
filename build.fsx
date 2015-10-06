@@ -4,25 +4,28 @@ open IntelliFactory.Build
 let bt =
     BuildTool().PackageId("WebSharper.Warp")
         .VersionFrom("WebSharper")
+        .WithFSharpVersion(FSharpVersion.FSharp30)
+        .WithFramework(fun fw -> fw.Net45)
 
 let main =
     bt.FSharp.Library("WebSharper.Warp")
         .SourcesFromProject()
         .References(fun r ->
             [
-                r.NuGet("Owin").Reference()
-                r.NuGet("Microsoft.Owin").Reference()
-                r.NuGet("Microsoft.Owin.Diagnostics").Reference()
-                r.NuGet("Microsoft.Owin.FileSystems").Reference()
-                r.NuGet("Microsoft.Owin.Host.HttpListener").Reference()
-                r.NuGet("Microsoft.Owin.Hosting").Reference()
-                r.NuGet("Microsoft.Owin.SelfHost").Reference()
-                r.NuGet("Microsoft.Owin.StaticFiles").Reference()
+                r.NuGet("Owin").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.Diagnostics").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.FileSystems").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.Host.HttpListener").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.Hosting").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.SelfHost").ForceFoundVersion().Reference()
+                r.NuGet("Microsoft.Owin.StaticFiles").ForceFoundVersion().Reference()
                 r.Assembly("System.Web")
-                r.NuGet("WebSharper").Reference()
-                r.NuGet("WebSharper.UI.Next").Reference()
-                r.NuGet("WebSharper.Compiler").Reference()
-                r.NuGet("WebSharper.Owin").Reference()
+                r.NuGet("WebSharper").ForceFoundVersion().Reference()
+                r.NuGet("WebSharper.Html").ForceFoundVersion().Reference()
+                r.NuGet("WebSharper.UI.Next").ForceFoundVersion().Reference()
+                r.NuGet("WebSharper.Compiler").ForceFoundVersion().Reference()
+                r.NuGet("WebSharper.Owin").ForceFoundVersion().Reference()
             ])
 
 let test =
@@ -41,6 +44,7 @@ let test =
                 r.NuGet("Microsoft.Owin.StaticFiles").Reference()
                 r.Assembly("System.Web")
                 r.NuGet("WebSharper").Reference()
+                r.NuGet("WebSharper.Html").Reference()
                 r.NuGet("WebSharper.UI.Next").Reference()
                 r.NuGet("WebSharper.Compiler").Reference()
                 r.NuGet("WebSharper.Owin").Reference()

@@ -255,15 +255,12 @@ type Warp internal (urls: list<string>, stop: unit -> unit) =
     static member Page (?Body: #seq<Element>, ?Head: #seq<Element>, ?Title: string, ?Doctype: string) =
         Content.Page(?Body = Body, ?Doctype = Doctype, ?Head = Head, ?Title = Title)
 
-    static member Page (doc: Element) =
-        Content.WithTemplate (Content.Template.FromHtmlElement doc) ignore
-
 #if NO_UINEXT
 #else
-    static member Doc (doc: Doc) = Content.Doc doc
+    static member Doc (doc: Doc) = Content.Page doc
 
     static member Doc (?Body: #seq<Doc>, ?Head: #seq<Doc>, ?Title: string, ?Doctype: string) =
-        Content.Doc(?Body = Body, ?Doctype = Doctype, ?Head = Head, ?Title = Title)
+        Content.Page(?Body = Body, ?Doctype = Doctype, ?Head = Head, ?Title = Title)
 #endif
 
     static member Json data =

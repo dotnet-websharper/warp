@@ -108,19 +108,16 @@ type Warp =
         * ?Doctype: string
         -> Async<Content<'EndPoint>>
 
-    /// Creates an HTML page from an <html> element.
-    static member Page : Element -> Async<Content<'EndPoint>>
-
 #if NO_UINEXT
 #else
 
     /// Creates an HTML page from an <html> `Doc`.
     /// Equivalent to Content.Doc.
-    [<Obsolete "Use Content.Doc">]
+    [<Obsolete "Use Content.Page">]
     static member Doc : Doc -> Async<Content<'EndPoint>>
 
     /// Creates an HTML page response from `Doc`s.
-    [<Obsolete "Use Content.Doc">]
+    [<Obsolete "Use Content.Page">]
     static member Doc
         : ?Body: #seq<Doc>
         * ?Head: #seq<Doc>
