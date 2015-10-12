@@ -158,6 +158,8 @@ type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 [<Extension>]
 module Owin =
 
+    type MiddlewareGenerator = Func<IAppBuilder, MidFunc>
+
     type WarpOptions<'EndPoint when 'EndPoint : equality>(assembly, ?debug, ?rootDir, ?scripted) =
         let debug = defaultArg debug false
         let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
@@ -193,13 +195,18 @@ module Owin =
 
         member this.Invoke(env: IDictionary<string, obj>) = exec env
 
-    /// Adds the Warp middleware to an Owin.IAppBuilder pipeline.
+    /// Adds the middlewares to an Owin.IAppBuilder pipeline.
     [<Extension>]
-    let UseWarp(appB: Owin.IAppBuilder, sitelet: WarpApplication<'EndPoint>, options) =
-        Owin.MidFunc(fun next ->
-            let mw = WarpMiddleware<_>(next, sitelet, options)
-            Owin.AppFunc mw.Invoke)
-        |> appB.Use
+    let UseMiddlewares(appB: Owin.IAppBuilder, middlewareGenerators: list<MiddlewareGenerator>) =
+        let useMiddleware (appBuilder: Owin.IAppBuilder) (middlewareGenerator: MiddlewareGenerator) = middlewareGenerator.Invoke(appBuilder) |> appBuilder.Use
+        middlewareGenerators |> List.fold useMiddleware appB |> ignore
+
+    /// Creates an OWIN middleware generator from a sitelet.
+    [<Extension>]
+    let WarpMiddlewareGeneratorFrom(sitelet: WarpApplication<'EndPoint>, options): MiddlewareGenerator =
+        let middleware = Owin.MidFunc(fun next -> let mw = WarpMiddleware<_>(next, sitelet, options)
+                                                  Owin.AppFunc mw.Invoke)
+        MiddlewareGenerator(fun appB -> middleware)
 
 #if NO_UINEXT
 #else
@@ -218,32 +225,33 @@ type Warp internal (urls: list<string>, stop: unit -> unit) =
         member this.Dispose() = stop()
 
     [<Extension>]
-    static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly) =
+    static member Run(sitelet: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly, ?before) =
         let assembly =
             match assembly with
             | Some a -> a
             | None -> Assembly.GetCallingAssembly()
-        let urls = defaultArg urls ["http://localhost:9000/"]
-        let urls = urls |> List.map (fun url -> if not (url.EndsWith "/") then url + "/" else url)
+        let urls = defaultArg urls ["http://localhost:9000/"] 
+                    |> List.map (fun url -> if not (url.EndsWith "/") then url + "/" else url)
+
+        let before = defaultArg before List.Empty
         let options = Owin.WarpOptions<_>(assembly, ?debug = debug, ?rootDir = rootDir, ?scripted = scripted)
+        let middlewares = List.append before (Owin.WarpMiddlewareGeneratorFrom(sitelet, options) :: List.Empty)
         try
             let startOptions = new StartOptions()
             urls |> List.iter startOptions.Urls.Add
-            let server = WebApp.Start(startOptions, fun appB ->
-                Owin.UseWarp(appB, sitelet, options)
-                |> ignore)
+            let server = WebApp.Start(startOptions, fun appB -> Owin.UseMiddlewares(appB, middlewares))
             new Warp(urls, server.Dispose)
         with e ->
             failwithf "Error starting website:\n%s" (e.ToString())
 
     [<Extension>]
-    static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly) =
+    static member RunAndWaitForInput(app: WarpApplication<'EndPoint>, ?debug, ?urls, ?rootDir, ?scripted, ?assembly, ?before) =
         try
             let assembly =
                 match assembly with
                 | Some a -> a
                 | None -> Assembly.GetCallingAssembly()
-            let warp = Warp.Run(app, ?debug = debug, ?urls = urls, ?rootDir = rootDir, ?scripted = scripted, assembly = assembly)
+            let warp = Warp.Run(app, ?debug = debug, ?urls = urls, ?rootDir = rootDir, ?scripted = scripted, assembly = assembly, ?before = before)
             stdout.WriteLine("Serving {0}, press Enter to stop.", warp.Urls)
             stdin.ReadLine() |> ignore
             warp.Stop()

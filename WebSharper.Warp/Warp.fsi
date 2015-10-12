@@ -27,6 +27,8 @@ type WarpApplication<'EndPoint when 'EndPoint : equality> = Sitelet<'EndPoint>
 [<Extension>]
 module Owin =
 
+    type MiddlewareGenerator = Func<Owin.IAppBuilder, WebSharper.Owin.MidFunc>
+
     /// Warp OWIN middleware options.
     type WarpOptions<'EndPoint when 'EndPoint : equality> =
 
@@ -75,6 +77,7 @@ type Warp =
     /// urls: a list of URL prefixes on which to listen; defaults to ["http://localhost:9000/"].
     /// rootDir: the root directory of the application.
     /// assembly: the main assembly to compile to JavaScript; defaults to the calling assembly.
+    /// before: list of middlewares to come before the sitelet in the OWIN pipeline
     static member Run
         : app: WarpApplication<'EndPoint>
         * ?debug: bool
@@ -82,6 +85,7 @@ type Warp =
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
+        * ?before: list<Owin.MiddlewareGenerator> 
         -> Warp
 
     /// Runs the Warp application and waits for standard input.
@@ -89,6 +93,7 @@ type Warp =
     /// urls: a list of URL prefixes on which to listen; defaults to ["http://localhost:9000/"].
     /// rootDir: the root directory of the application.
     /// assembly: the main assembly to compile to JavaScript; defaults to the calling assembly.
+    /// before: list of middlewares to come before the sitelet in the OWIN pipeline
     /// Returns: an error code suitable for returning from the application's entry point.
     static member RunAndWaitForInput
         : app: WarpApplication<'EndPoint>
@@ -97,6 +102,7 @@ type Warp =
         * ?rootDir: string
         * ?scripted: bool
         * ?assembly: Assembly
+        * ?before: list<Owin.MiddlewareGenerator>
         -> int
 
     /// Creates an HTML page response.

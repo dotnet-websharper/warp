@@ -20,6 +20,7 @@ module Client =
 module Server =
 
     open WebSharper.Html.Server
+    open WebSharper.Warp.Test.Logging
 
     let app =
         Application.MultiPage(fun ctx endpoint ->
@@ -36,4 +37,4 @@ module Server =
 
     [<EntryPoint>]
     let main argv = 
-        Warp.RunAndWaitForInput(app, urls = ["http://localhost:9000"; "http://127.0.0.1:9000"])
+        Warp.RunAndWaitForInput(app, urls = ["http://localhost:9000"; "http://127.0.0.1:9000"], before = [Logging.logger])
