@@ -5,6 +5,7 @@
 #r "WebSharper.Web.dll"
 #r "WebSharper.Html.Server.dll"
 #r "WebSharper.Html.Client.dll"
+#r "WebSharper.UI.Next.dll"
 #r "WebSharper.Sitelets.dll"
 #r "IntelliFactory.Core.dll"
 #r "Mono.Cecil.dll"
