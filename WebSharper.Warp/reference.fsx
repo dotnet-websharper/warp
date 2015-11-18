@@ -1,6 +1,8 @@
 #r "WebSharper.Core.dll"
 #r "WebSharper.Core.JavaScript.dll"
 #r "WebSharper.JavaScript.dll"
+#r "WebSharper.Collections.dll"
+#r "WebSharper.Control.dll"
 #r "WebSharper.Main.dll"
 #r "WebSharper.Web.dll"
 #r "WebSharper.Html.Server.dll"

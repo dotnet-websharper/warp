@@ -95,6 +95,7 @@ module internal Compilation =
                         |> loadRefs refs
                 let asms =
                     AppDomain.CurrentDomain.GetAssemblies()
+                    |> Array.append (AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies())
                     |> Array.filter (fun a -> not (dontRef a.FullName))
                 yield! asms
                 |> Array.map (fun asm -> asm.FullName, asm)
