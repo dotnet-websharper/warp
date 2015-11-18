@@ -232,6 +232,14 @@ type Warp internal (urls: list<string>, stop: unit -> unit) =
             urls |> List.iter startOptions.Urls.Add
             let server = WebApp.Start(startOptions, fun appB ->
                 Owin.UseWarp(appB, sitelet, options)
+                    .Use(fun ctx next ->
+                        Task.Factory.StartNew(fun () ->
+                            let s : Stream =
+                                ctx .Set("owin.ResponseStatusCode", 404)
+                                    .Set("owin.ResponseReasonPhrase", "Not Found")
+                                    .Get("owin.ResponseBody")
+                            use w = new StreamWriter(s)
+                            w.Write("Page not found")))
                 |> ignore)
             new Warp(urls, server.Dispose)
         with e ->
