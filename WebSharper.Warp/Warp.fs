@@ -44,78 +44,118 @@ module internal Compilation =
     open IntelliFactory.Core
     module FE = WebSharper.Compiler.FrontEnd
 
-    let compile asm =
+    type CompiledAssembly =
+        {
+            ReadableJavaScript : string
+            CompressedJavaScript : string
+            Info : WebSharper.Core.Metadata.Info
+            References : list<WebSharper.Compiler.Assembly>
+        }
+
+    let websharperDir = lazy (Path.GetDirectoryName typeof<Sitelet<_>>.Assembly.Location)
+
+    let getRefs (loader: Compiler.Loader) =
+        [
+            for dll in Directory.EnumerateFiles(websharperDir.Value, "*.dll") do
+                if Path.GetFileName(dll) <> "FSharp.Core.dll" then
+                    yield dll
+            let dontRef (n: string) =
+                [
+                    "FSharp.Compiler.Interactive.Settings,"
+                    "FSharp.Compiler.Service,"
+                    "FSharp.Core,"
+                    "FSharp.Data.TypeProviders,"
+                    "Mono.Cecil"
+                    "mscorlib,"
+                    "System."
+                    "System,"
+                ] |> List.exists n.StartsWith
+            let rec loadRefs (asms: Assembly[]) (loaded: Map<string, Assembly>) =
+                let refs =
+                    asms
+                    |> Seq.collect (fun asm -> asm.GetReferencedAssemblies())
+                    |> Seq.map (fun n -> n.FullName)
+                    |> Seq.distinct
+                    |> Seq.filter (fun n -> not (dontRef n || Map.containsKey n loaded))
+                    |> Seq.choose (fun n ->
+                        try Some (AppDomain.CurrentDomain.Load n)
+                        with _ -> None)
+                    |> Array.ofSeq
+                if Array.isEmpty refs then
+                    loaded
+                else
+                    (loaded, refs)
+                    ||> Array.fold (fun loaded r -> Map.add r.FullName r loaded)
+                    |> loadRefs refs
+            let asms =
+                AppDomain.CurrentDomain.GetAssemblies()
+                |> Array.append (AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies())
+                |> Array.filter (fun a -> not (dontRef a.FullName))
+            yield! asms
+            |> Array.map (fun asm -> asm.FullName, asm)
+            |> Map.ofArray
+            |> loadRefs asms
+            |> Seq.choose (fun (KeyValue(n, asm)) ->
+                try Some asm.Location
+                with :? NotSupportedException ->
+                    // The dynamic assembly does not support `.Location`.
+                    // No problem, if it's from the dynamic assembly then
+                    // it doesn't incur a dependency anyway.
+                    None)
+        ]
+        |> Seq.distinctBy Path.GetFileName
+        |> Seq.map loader.LoadFile
+        |> Seq.toList
+
+    let getLoader() =
         let localDir = Directory.GetCurrentDirectory()
-        let websharperDir = Path.GetDirectoryName typeof<Sitelet<_>>.Assembly.Location
         let fsharpDir = Path.GetDirectoryName typeof<option<_>>.Assembly.Location
         let loadPaths =
             [
                 localDir
-                websharperDir
+                websharperDir.Value
                 fsharpDir
             ]
-        let loader =
-            let aR =
-                AssemblyResolver.Create()
-                    .SearchDirectories(loadPaths)
-                    .WithBaseDirectory(fsharpDir)
-            FE.Loader.Create aR stderr.WriteLine
-        let refs =
-            [
-                for dll in Directory.EnumerateFiles(websharperDir, "*.dll") do
-                    if Path.GetFileName(dll) <> "FSharp.Core.dll" then
-                        yield dll
-                let dontRef (n: string) =
-                    [
-                        "FSharp.Compiler.Interactive.Settings,"
-                        "FSharp.Compiler.Service,"
-                        "FSharp.Core,"
-                        "FSharp.Data.TypeProviders,"
-                        "Mono.Cecil"
-                        "mscorlib,"
-                        "System."
-                        "System,"
-                    ] |> List.exists n.StartsWith
-                let rec loadRefs (asms: Assembly[]) (loaded: Map<string, Assembly>) =
-                    let refs =
-                        asms
-                        |> Seq.collect (fun asm -> asm.GetReferencedAssemblies())
-                        |> Seq.map (fun n -> n.FullName)
-                        |> Seq.distinct
-                        |> Seq.filter (fun n -> not (dontRef n || Map.containsKey n loaded))
-                        |> Seq.choose (fun n ->
-                            try Some (AppDomain.CurrentDomain.Load n)
-                            with _ -> None)
-                        |> Array.ofSeq
-                    if Array.isEmpty refs then
-                        loaded
-                    else
-                        (loaded, refs)
-                        ||> Array.fold (fun loaded r -> Map.add r.FullName r loaded)
-                        |> loadRefs refs
-                let asms =
-                    AppDomain.CurrentDomain.GetAssemblies()
-                    |> Array.append (AppDomain.CurrentDomain.ReflectionOnlyGetAssemblies())
-                    |> Array.filter (fun a -> not (dontRef a.FullName))
-                yield! asms
-                |> Array.map (fun asm -> asm.FullName, asm)
-                |> Map.ofArray
-                |> loadRefs asms
-                |> Seq.choose (fun (KeyValue(n, asm)) ->
-                    try Some asm.Location
-                    with :? NotSupportedException ->
-                        // The dynamic assembly does not support `.Location`.
-                        // No problem, if it's from the dynamic assembly then
-                        // it doesn't incur a dependency anyway.
-                        None)
-            ]
-            |> Seq.distinctBy Path.GetFileName
-            |> Seq.map loader.LoadFile
-            |> Seq.toList
+        let aR =
+            AssemblyResolver.Create()
+                .SearchDirectories(loadPaths)
+                .WithBaseDirectory(fsharpDir)
+        FE.Loader.Create aR stderr.WriteLine
+
+    let compile (asm: System.Reflection.Assembly) =
+        let loader = getLoader()
+        let refs = getRefs loader
         let opts = { FE.Options.Default with References = refs }
         let compiler = FE.Prepare opts (eprintfn "%O")
-        compiler.Compile(<@ () @>, context = asm)
-        |> Option.map (fun asm -> asm, refs)
+        compiler.Compile(asm)
+        |> Option.map (fun asm ->
+            {
+                ReadableJavaScript = asm.ReadableJavaScript
+                CompressedJavaScript = asm.CompressedJavaScript
+                Info = asm.Info
+                References = refs
+            }
+        )
+
+    let getCompiled (asm: System.Reflection.Assembly) =
+        let loader = getLoader()
+        let refs = getRefs loader
+        refs
+        |> List.tryFind (fun r -> r.FullName = asm.FullName)
+        |> Option.bind (fun r ->
+            match r.ReadableJavaScript, r.CompressedJavaScript with
+            | Some readable, Some compressed ->
+                let opts = { FE.Options.Default with References = refs }
+                let compiler = FE.Prepare opts (eprintfn "%O")
+                Some {
+                    ReadableJavaScript = readable
+                    CompressedJavaScript = compressed
+                    Info = compiler.GetInfo()
+                    References = refs
+                }
+            | _ ->
+                eprintfn "Assembly not compiled. When using Scripted = false, the application must be precompiled."
+                None)
 
     let outputFiles root (refs: Compiler.Assembly list) =
         let pc = PC.PathUtility.FileSystem(root)
@@ -148,7 +188,7 @@ module internal Compilation =
 
     let (+/) x y = Path.Combine(x, y)
 
-    let outputFile root (asm: FE.CompiledAssembly) =
+    let outputFile root (asm: CompiledAssembly) =
         let dir = root +/ "Scripts" +/ "WebSharper"
         Directory.CreateDirectory(dir) |> ignore
         File.WriteAllText(dir +/ "WebSharper.EntryPoint.js", asm.ReadableJavaScript)
@@ -162,7 +202,7 @@ module Owin =
     type WarpOptions<'EndPoint when 'EndPoint : equality>(assembly, ?debug, ?rootDir, ?scripted) =
         let debug = defaultArg debug false
         let rootDir = defaultArg rootDir (Directory.GetCurrentDirectory())
-        let scripted = defaultArg scripted false
+        let scripted = defaultArg scripted true
 
         member this.Assembly = assembly
         member this.Debug = debug
@@ -172,10 +212,15 @@ module Owin =
     type WarpMiddleware<'EndPoint when 'EndPoint : equality>(next: Owin.AppFunc, sitelet: WarpApplication<'EndPoint>, options: WarpOptions<'EndPoint>) =
         let exec =
             // Compile only when the app starts and not on every request.
-            match Compilation.compile options.Assembly with
+            let compile =
+                if options.Scripted then
+                    Compilation.compile
+                else
+                    Compilation.getCompiled
+            match compile options.Assembly with
             | None -> failwith "Failed to compile with WebSharper"
-            | Some (asm, refs) ->
-                Compilation.outputFiles options.RootDir refs
+            | Some asm ->
+                Compilation.outputFiles options.RootDir asm.References
                 Compilation.outputFile options.RootDir asm
                 // OWIN middleware form a Russian doll, innermost -> outermost
                 let siteletMw =
