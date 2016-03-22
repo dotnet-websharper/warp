@@ -7,7 +7,6 @@
 #I "../../WebSharper/lib/net40"
 #I "../../WebSharper.Html/lib/net40"
 #I "../../WebSharper.UI.Next/lib/net40"
-#I "../../WebSharper.Forms/lib/net40"
 #I "../../WebSharper.Compiler/lib/net40"
 #I "../../WebSharper.Owin/lib/net45"
 #I "../lib/net45"
@@ -27,4 +26,3 @@
 #r "Mono.Cecil.dll"
 #r "WebSharper.Compiler.dll"
 #r "WebSharper.Warp.dll"
-#r "WebSharper.Forms.dll"
